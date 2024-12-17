@@ -1,27 +1,3 @@
-// const WebSocket = require("ws");
-
-// const PORT = 3000;
-// const server = new WebSocket.Server({ port: PORT }, () => {
-//     console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
-// });
-
-// server.on("connection", (socket) => {
-//     console.log("A client connected");
-
-//     socket.send("Welcome to the WebSocket server!");
-
-//     socket.on("message", (message) => {
-//         console.log(`Received: ${message}`);
-//         socket.send(`Echo: ${message}`);
-//     });
-
-//     socket.on("close", () => {
-//         console.log("Client disconnected");
-//     });
-// });
-
-// NEW
-
 const WebSocket = require("ws");
 
 const PORT = 3000;
@@ -29,7 +5,7 @@ const server = new WebSocket.Server({ port: PORT }, () => {
     console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
 });
 
-let waitingPlayer = null;
+let waitingPlayer = null; // Store a waiting player for matchmaking
 
 server.on("connection", (socket) => {
     console.log("A player connected.");
@@ -40,19 +16,23 @@ server.on("connection", (socket) => {
         const opponent = waitingPlayer;
         waitingPlayer = null;
 
-        // Notify both players the game has started
+        // Notify both players that the game has started
         socket.send(JSON.stringify({ event: "start-game", message: "Match found!" }));
         opponent.send(JSON.stringify({ event: "start-game", message: "Match found!" }));
 
-        // Relay spin updates between players
+        // Relay spin updates (RPM) between players
         socket.on("message", (data) => {
-            console.log("Spin update from player 1:", data);
-            opponent.send(data); // Relay to opponent
+            console.log("Received spin update from Player 1:", data);
+            opponent.send(data); // Forward message to the opponent
         });
+
         opponent.on("message", (data) => {
-            console.log("Spin update from player 2:", data);
-            socket.send(data); // Relay to opponent
+            console.log("Received spin update from Player 2:", data);
+            socket.send(data); // Forward message to the opponent
         });
+
+        socket.on("close", () => console.log("Player 1 disconnected."));
+        opponent.on("close", () => console.log("Player 2 disconnected."));
     } else {
         waitingPlayer = socket;
         console.log("Waiting for another player...");
@@ -66,3 +46,5 @@ server.on("connection", (socket) => {
         }
     });
 });
+
+console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
